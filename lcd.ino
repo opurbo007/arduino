@@ -16,7 +16,6 @@
 #define DATA_PIN  11  // or MOSI
 #define CS_PIN    10  // or SS
 
-
 // SPI hardware interface
 MD_Parola mx = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 
@@ -25,18 +24,17 @@ LiquidCrystal_I2C lcd(0x27, 20, 4);
 
 #define dhtpin 8
 dht11 dhtObject;
+String readString;
+String hoursMsg = "Hours Set:";
 
 int buzzer = 7;
 
-int inputHour = 16;
-int inputMin = 54;
-
-//String text;
-//char c;
+int inputHour;
+int inputMin;
 
 
 void setup() {
-//  bluetoothSerial.begin(9600);
+  //  bluetoothSerial.begin(9600);
   mx.begin();
 
   // put your setup code here, to run once:
@@ -50,30 +48,46 @@ void setup() {
   Serial.println("-------------------");
 
 }
-//void blue() {
-//
-//  if (bluetoothSerial.available() > 0)
-//  {
-//    c = bluetoothSerial.read();
-//
-////    mx.print(c);
-////    lcd.print(c);
-//    Serial.print(c);
-//  }
-//
-//}
-//void display() {
-//
-//
-// lcd.setCursor(0, 1);
-//  lcd.print("hello");
-//
-//
-//
-//}
+void blue() {
+  while (Serial.available() > 0) {
+    delay(10);  //small delay to allow input buffer to fill
+    char c = Serial.read();  //gets one byte from serial buffer
+    if (c == ',') {
+      break;
+    }  //breaks out of capture loop to print readstring
+    readString += c;
+  } //makes the string readString
+  if (readString.startsWith("hrs")) {
+    readString.replace("hrs", "");
+    inputHour = readString.toInt();
+  }
+
+  if (readString.startsWith("min")) {
+    readString.replace("min", "");
+    inputMin = readString.toInt();
+  }
+  if (readString.length() > 0) {
+    Serial.println(readString); //prints string to serial port out
+    //    printDisplay();
+    readString = ""; //clears variable for new input
+  }
+}
+void printDisplay() {
+  //  String msg = hoursMsg + " " + inputHour + " | Minutes Set: " + inputMin;
+  //  char msgBuf[msg.length() + 1];
+  //  msg.toCharArray(msgBuf, msg.length());
+  //  if (mx.displayAnimate()) {
+  //    mx.displayScroll(msgBuf, PA_CENTER, PA_SCROLL_LEFT, 100);
+  //    mx.displayReset();
+  //  }
+  mx.setTextAlignment(PA_CENTER);
+  mx.print("DIU");
+
+}
 // for weather
 void getTemperature()
 {
+  printDisplay();
   dhtObject.read(dhtpin);
   int temp = dhtObject.temperature;
   int hum = dhtObject.humidity;
@@ -125,7 +139,6 @@ void time() {
       Serial.println();
     } else {
       Serial.println("DS1307 read error!  Please check the circuitry.");
-      //      Serial.println();
     }
     delay(9000);
   }
@@ -146,38 +159,19 @@ void Buzz() {
   delay(500);        // ...for 1sec
 }
 
-
-
-void dotMat() {
-
-  if (mx.displayAnimate()) {
-    mx.displayText("Welcome to DIU", PA_CENTER, 30, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
-    mx.displayReset();
-  }
-
-
-
-}
-
 void loop() {
   // put your main code here, to run repeatedly:
-    //display();
-     getTemperature();
-        delay(3000);
-     lcd.clear();
-
-    time();
-      delay(3000);
-       lcd.clear();
-    tmElements_t tm;
-    if (RTC.read(tm)) {
-      if ((tm.Hour) == inputHour && (tm.Minute) == inputMin) {
-        Buzz();
-      }
-      Serial.print(tm.Hour);
-      Serial.print(tm.Minute);
+  getTemperature();
+  delay(2000);
+  lcd.clear();
+  time();
+  delay(2000);
+  lcd.clear();
+  tmElements_t tm;
+  if (RTC.read(tm)) {
+    if ((tm.Hour) == inputHour && (tm.Minute) == inputMin) {
+      Buzz();
     }
-  dotMat();
-//   blue();
-
+  }
+  blue();
 }
